@@ -1,0 +1,99 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use work.lcd;
+
+entity main is
+    Port ( clk : in STD_LOGIC;
+			  guess : in  STD_LOGIC_VECTOR (3 downto 0);
+			  lives : inout  STD_LOGIC_VECTOR (2 downto 0) := "111";
+			  position : inout STD_LOGIC_VECTOR (4 downto 0) := "00000";
+			  LCD_DB: out std_logic_vector(7 downto 0);	
+           RS:out std_logic;  				
+           RW:out std_logic;				
+			  OE:out std_logic;				
+			  send : in  STD_LOGIC);
+end main;
+
+
+
+architecture Behavioral of main is
+
+
+component lcd is
+    Port ( LCD_DB: out std_logic_vector(7 downto 0);	
+           RS:out std_logic;  				
+           RW:out std_logic;				
+			CLK:in std_logic;				
+			OE:out std_logic;				
+			rst:in std_logic;
+			lives :inout std_logic_vector (2 downto 0);
+			position : in STD_LOGIC_VECTOR (4 downto 0));
+end component;
+
+
+type states is (s0, s1);
+signal state : states := s0;
+signal correct : integer := 0;
+signal lifes : integer := 3;
+signal password : STD_LOGIC_VECTOR (19 downto 0) := "01110001011001010000"; -- 71650 
+
+begin
+
+process (clk, send)
+	begin
+		if rising_edge(clk) then
+			case state is
+				when s0 =>
+					if send = '1' then
+						state <= s1; 
+					else
+						state <= s0; 
+					end if;
+				when s1 =>
+					if send = '1' then
+						state <= s1; 
+					else
+						state <= s0; 
+					end if;
+			end case;
+		end if;
+	end process;
+
+process (clk)
+	begin
+		if rising_edge(clk) then
+			case state is
+				when s0 =>
+				
+				when s1 =>
+					
+					pwloop:
+					for i in 0 to 4 loop
+						if (password(4*i) = guess(0) AND (password(4*i+1) = guess(1)) AND (password(4*i+2) = guess(2)) AND (password(4*i+3) = guess(3))) then
+							position(i) <= '1';
+							correct <= correct + 1;
+						end if;
+					end loop pwloop;
+					if correct = 0 then
+						lifes <= lifes - 1;
+						lives <= "000";
+					end if;
+					livesloop:
+					for i in 0 to (lifes - 1) loop
+						lives (i) <= '1';
+					end loop livesloop;
+				end case;
+			end if;
+		end process;
+		
+lcd1 : lcd port map(
+LCD_DB => LCD_DB,
+RS => RS,
+RW => RW,
+OE => OE,
+CLK => CLK,
+LIVES => LIVES,
+RST => SEND,
+POSITION => POSITION);
+
+end Behavioral;
